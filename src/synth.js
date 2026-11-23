@@ -16,12 +16,12 @@
     Ke:   { b: { f0: 150, f1: 112, decay: 0.07, amp: 0.7 }, click: 0.3 },
     tick: { click: 0.5, d: { f: 1200, decay: 0.03, amp: 0.25 } },
   };
-  const ALIAS = { dhe: 'Dhi', dhir: 'Dhi', dhage: 'Dha', gha: 'Ge', ga: 'Ge', ka: 'Ke', kat: 'Ke', ki: 'Ke', te: 'Ti', tete: 'Ti', tira: 'Ti', kita: 'Ti', tirakita: 'Ti', tun: 'Tin', ne: 'Na', ni: 'Na', nu: 'Na', din: 'Dhin' };
+  const ALIAS = { dhe: 'Dhi', dhir: 'Dhi', dhage: 'Dha', gha: 'Ge', ghe: 'Ge', ga: 'Ge', ka: 'Ke', kat: 'Ke', ki: 'Ke', te: 'Ti', tete: 'Ti', tira: 'Ti', kita: 'Ti', tirakita: 'Ti', tun: 'Tin', ne: 'Na', ni: 'Na', nu: 'Na', din: 'Dhin' };
 
   // Any bol the user types gets the nearest voice, so custom phrases always sound.
   function profileFor(bol) {
     const k = String(bol || '').trim().toLowerCase();
-    if (!k || k === '-') return null;                                  // a rest
+    if (!k || /^[-–—_]+$/.test(k)) return null;              // a rest: ASCII hyphen, en dash, em dash or underscore
     for (const name of Object.keys(P)) if (name.toLowerCase() === k) return P[name];
     if (ALIAS[k]) return P[ALIAS[k]];
     if (k.startsWith('dh')) return P.Dha;
@@ -150,7 +150,11 @@
       while (this.queue.length && this.queue[0].t <= now) cur = this.queue.shift();
       return cur;
     }
-    stop() { clearInterval(this.timer); this.timer = 0; this.queue = []; this.running = false; }
+    stop() {
+      clearInterval(this.timer); this.timer = 0; this.queue = []; this.running = false;
+      // notes are scheduled ahead of time; cutting the old output bus silences them at once, and a fresh bus serves the next start
+      if (this.m) { try { this.m.out.disconnect(); } catch (e) { /* already disconnected */ } this.m = master(this.ctx, this.volume); }
+    }
   }
 
   // Offline render of the theka, for checking timing without speakers.
