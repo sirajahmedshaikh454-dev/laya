@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Laya audio check</title>
+<pre id="out">running...</pre>
+<script src="src/taal.js"></script>
+<script src="src/synth.js"></script>
+<script>
+// Renders every taal offline and checks: silence before the first bol, an attack at every expected beat, and no clipping.
+(async () => {
+  const T = LayaTaal, S = LayaSynth, rows = [];
+  for (const [key, taal] of Object.entries(T.TAALS)) {
+    const bpm = 60, { samples, sr, events } = await S.renderTheka(taal, T.beatInfo, bpm, 2);
+    const peak = (a, b) => { let m = 0; for (let i = Math.max(0, Math.floor(a * sr)); i < Math.min(samples.length, Math.floor(b * sr)); i++) m = Math.max(m, Math.abs(samples[i])); return m; };
+    const lead = peak(0, events[0].t - 0.005);
+    let worst = Infinity, clip = 0;
+    for (const e of events) { const attack = peak(e.t, e.t + 0.04), before = peak(e.t - 0.06, e.t - 0.01); if (e.beat >= 0 && e.t > 0.5) worst = Math.min(worst, before ? attack / before : 99); }
+    for (let i = 0; i < samples.length; i++) if (Math.abs(samples[i]) > 0.999) clip++;
+    const firstAttack = peak(events[0].t, events[0].t + 0.04), meanAttack = events.reduce((a, e) => a + peak(e.t, e.t + 0.04), 0) / events.length;
+    rows.push({ taal: key, beats: events.length, silenceBefore: +lead.toFixed(5), firstAttack: +firstAttack.toFixed(3), meanAttack: +meanAttack.toFixed(3), worstAttackToPreRatio: +worst.toFixed(2), clippedSamples: clip, durationSec: +(samples.length / sr).toFixed(1) });
+  }
+  window.__audio = rows;
+  document.getElementById('out').textContent = JSON.stringify(rows, null, 1);
+})();
+</script>
