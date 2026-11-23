@@ -1,0 +1,8 @@
+{
+  "name": "laya",
+  "version": "1.0.0",
+  "description": "A tabla and rhythm studio in the browser.",
+  "private": true,
+  "scripts": { "test": "node --test", "serve": "node tools/serve.js" },
+  "license": "MIT"
+}
