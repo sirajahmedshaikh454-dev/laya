@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Laya</title>
+<meta name="description" content="A tabla and rhythm studio in the browser: taal dial, synthesized bols, tempo, and a tihai solver that finds where a phrase lands on sam.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%23e8d9b5'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%23161312'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f3ecdc; --card:#fbf6ea; --ink:#2a211b; --mute:#6f6256; --line:#d9ccb2; --accent:#b4471d; --accent-ink:#fff7ee; --skin:#efe2c0; --syahi:#1d1815;
+  --sam:#b4471d; --tali:#2f6f5e; --khali:#8a6a1f; --glow:rgba(180,71,29,.35);
+  --p1:#e9a46a; --p2:#d4783e; --p3:#b4471d; --gap:#cdbf9f;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#141110; --card:#1d1917; --ink:#f1e7d3; --mute:#a69885; --line:#342d28; --accent:#f08a4b; --accent-ink:#1a0f08; --skin:#2b241d; --syahi:#0b0908;
+  --sam:#f08a4b; --tali:#6fd0b3; --khali:#e6c066; --glow:rgba(240,138,75,.4);
+  --p1:#8a5a30; --p2:#c27238; --p3:#f08a4b; --gap:#3b332b;}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+.wrap{max-width:980px;margin:0 auto;padding:24px 16px 72px}
+h1{font:700 2.1rem/1 Georgia,"Times New Roman",serif;margin:0;letter-spacing:.01em}
+.sub{color:var(--mute);margin:4px 0 18px}
+.grid{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+.grid>*{min-width:0}
+@media(min-width:860px){.grid{grid-template-columns:420px minmax(0,1fr);align-items:start}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+h2{font:650 1.05rem/1.2 system-ui,sans-serif;margin:0 0 10px}
+.dialbox{display:flex;justify-content:center}
+svg.dial{width:100%;max-width:400px;height:auto;display:block}
+.pills{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+button,select,input{font:inherit;color:var(--ink)}
+button{cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--card);padding:8px 14px;min-height:42px}
+button[aria-pressed=true],button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:650}
+button.play{width:100%;font-size:1.1rem;min-height:52px;background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+.lab{font-size:.85rem;color:var(--mute);min-width:74px}
+input[type=range]{flex:1;min-width:140px;accent-color:var(--accent)}
+.bpm{font:700 1.5rem Georgia,serif;min-width:3ch;text-align:right}
+.seg{display:inline-flex;gap:6px}
+.hint{color:var(--mute);font-size:.88rem}
+input[type=text],select{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:8px 10px;min-height:42px;width:100%}
+.sols{display:grid;gap:8px;margin:10px 0;padding:0;list-style:none}
+.sol{display:flex;gap:10px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:12px;padding:8px 10px;flex-wrap:wrap}
+.sol.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--glow)}
+.sol b{font-weight:650}
+.lay{overflow-x:auto;padding-bottom:6px}
+.cyc{display:flex;align-items:stretch;gap:3px;margin:6px 0;width:max-content}
+.cyc .cl{font-size:.72rem;color:var(--mute);min-width:52px;align-self:center}
+.cell{min-width:26px;height:34px;border-radius:6px;background:var(--bg);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:.68rem;flex:0 0 auto;padding:0 2px;white-space:nowrap}
+.cell.beat0{border-left:3px solid var(--sam)}
+.cell.p1{background:var(--p1);color:#1a0f08}.cell.p2{background:var(--p2);color:#1a0f08}.cell.p3{background:var(--p3);color:#fff8f0}
+.cell.gap{background:repeating-linear-gradient(45deg,var(--gap),var(--gap) 4px,transparent 4px,transparent 8px)}
+.cell.end{outline:2px solid var(--sam);outline-offset:1px;font-weight:700}
+.map{display:flex;gap:3px;overflow-x:auto;padding-bottom:6px}
+.map button{min-width:34px;min-height:44px;padding:2px 4px;font-size:.72rem;line-height:1.15;flex:0 0 auto}
+.map button small{display:block;color:var(--mute);font-size:.62rem}
+.map button[aria-pressed=true] small{color:inherit}
+.map button.no{opacity:.45}
+footer{margin-top:22px;color:var(--mute);font-size:.84rem}
+details{margin-top:14px}summary{cursor:pointer;font-weight:650}
+.sr{position:absolute;left:-9999px}
+.node{transition:r .08s}
+@media(prefers-reduced-motion:reduce){.node{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Laya</h1>
+  <p class="sub">A tabla and rhythm studio. Pick a taal, keep time with it, and let the tihai lab find where a phrase lands on sam.</p>
+
+  <div class="grid">
+    <section class="card" aria-labelledby="t-h">
+      <h2 id="t-h" class="sr">Taal player</h2>
+      <div class="pills" id="taals" role="group" aria-label="Taal"></div>
+      <div class="dialbox"><svg class="dial" id="dial" viewBox="0 0 400 400" role="img" aria-label="Taal dial"></svg></div>
+      <p class="sr" id="live" aria-live="polite"></p>
+      <button class="play" id="play" type="button">Play (space)</button>
+      <div class="row"><span class="lab">Tempo</span><input id="bpm" type="range" min="30" max="240" value="80" aria-label="Tempo in beats per minute"><span class="bpm" id="bpmv">80</span><button id="tap" type="button">Tap</button></div>
+      <div class="row"><span class="lab">Layakari</span><span class="seg" role="group" aria-label="Speed multiplier" id="lay"></span><span class="hint" id="layname"></span></div>
+      <div class="row"><span class="lab">Volume</span><input id="vol" type="range" min="0" max="1" step="0.05" value="0.8" aria-label="Volume"></div>
+      <div class="row"><label class="lab" for="mute">Silent</label><input id="mute" type="checkbox"><span class="hint">Dial only, for clapping along</span></div>
+    </section>
+
+    <section class="card" aria-labelledby="h-h">
+      <h2 id="h-h">Tihai lab</h2>
+      <p class="hint">A tihai is a phrase played three times so that the <b>last bol of the third phrase lands exactly on sam</b>. Give a phrase, say where it starts, and Laya finds every gap that works.</p>
+      <div class="row"><label class="lab" for="phrase">Phrase</label><input type="text" id="phrase" value="Dha Dhin Dhin Dha" aria-describedby="phint"></div>
+      <div class="pills" id="presets" aria-label="Example phrases"></div>
+      <p class="hint" id="phint">One bol per pulse. Use <b>-</b> for a rest. Pulses per beat:</p>
+      <div class="row"><span class="seg" id="kseg" role="group" aria-label="Pulses per beat"></span><label class="lab" for="start" style="margin-left:auto">Start on beat</label><select id="start" style="max-width:120px"></select></div>
+      <p class="hint">Starting beat, tap one to choose (the number under it is the shortest gap that works, in beats):</p>
+      <div class="map" id="map"></div>
+      <div id="result"></div>
+    </section>
+  </div>
+
+  <details>
+    <summary>About the notation and the sound</summary>
+    <ul class="hint">
+      <li><b>x</b> is sam (beat 1), <b>2, 3</b> are claps (tali), <b>0</b> is a wave (khali). In Rupak, sam is itself a khali beat. Thekas follow the common forms of each taal; schools differ in detail.</li>
+      <li><b>Tihai convention.</b> Here the last bol of the third phrase falls on sam. Some teachers finish the third phrase one beat before sam and then play sam alone; shift your phrase by one pulse to hear that version.</li>
+      <li><b>The sound is synthesized.</b> It is a sketch of tabla, good for keeping time and hearing a phrase, not a recording of a real drum.</li>
+    </ul>
+  </details>
+  <footer>Everything runs in this tab. No samples, no network, no accounts.</footer>
+</div>
+<script src="src/taal.js"></script>
+<script src="src/synth.js"></script>
+<script src="src/app.js"></script>
+</body>
+</html>
